@@ -2,14 +2,14 @@ import XCTest
 @testable import SwiftBSAC
 
 final class SwiftBSACTests: XCTestCase {
-    func testExample() throws {
-        var currentPos = 0
-        var bsac = SwiftBSAC()
-        let data = SwiftBSAC.readDev(Bundle.module.url(forResource: "440vio", withExtension: "wav")!)
-        while currentPos < data.count - 3000 {
-            bsac.supplyData(Array(data[currentPos...currentPos + 2999]))
-            print("Pitch: \(bsac.detect())")
-            currentPos += 3000
-        }
+    func testZeroCross() throws {
+        var bsac = try! SwiftBSAC()
+        let data = readDev(Bundle.module.url(forResource: "440", withExtension: "wav")!)
+        
+        bsac.supplyData(Array(data[0..<3072]))
+        bsac.publicZeroCross()
+        
+//        print(bsac.squareData)
+//        print(bsac.zeroCrossedData)
     }
 }
