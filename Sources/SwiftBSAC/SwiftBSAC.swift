@@ -13,53 +13,62 @@ public struct SwiftBSAC {
     // Configuration
     private(set) var batchSize: Int
     private(set) var sampleRate: Int
-    private(set) var maxFreq: Int
-    private(set) var ignoreFrom: Int
+    private(set) var minFreq: Double
+    private(set) var maxFreq: Double
+    private(set) var ignoreMin: Int
     
     // Programme Arrays
-    private(set) var rawAudio: [Float]
-    private(set) var zeroCrossings: [Bool]
+    private(set) var data: [Float]
+    private(set) var squareData: [UInt8]
+    private(set) var zeroCrossedData: [UInt8]
     private(set) var correlation: [Int]
 
-    public init(_ batchSize: Int = 1500, _ sampleRate: Int = 44100, _ maxFreq: Int = 12000) {
+    public init(_ batchSize: Int = 3096, _ sampleRate: Int = 44100, _ maxFreq: Double = 12000) throws {
+        guard batchSize > 1 else { throw BSACError.invalidBatchSizeIsOne }
+        guard batchSize % 2 == 0 else { throw BSACError.invalidBatchSizeMulTwo }
+        guard sampleRate > 1 else { throw BSACError.invalidSampleRateIsOne }
+        
         self.batchSize = batchSize
         self.sampleRate = sampleRate
-        self.maxFreq = maxFreq
-        self.ignoreFrom = Int(Double(self.sampleRate) / Double(self.maxFreq).rounded(.up))
+        self.minFreq = Double(self.sampleRate) / (Double(batchSize) / 2)
+            
+        guard maxFreq > self.minFreq else { throw BSACError.invalidMaxFreqLowerThanMin }
         
-        self.rawAudio = Array(repeating: 0, count: self.batchSize)
-        self.zeroCrossings = Array(repeating: false, count: self.batchSize)
+        self.maxFreq = maxFreq
+        self.ignoreMin = Int((Double(self.sampleRate) / self.maxFreq).rounded(.up))
+            
+        guard self.ignoreMin < self.batchSize else { throw BSACError.invalidMaxFreqIgnoreOverflow }
+        
+        self.data = []
+        self.squareData = []
+        self.zeroCrossedData = Array(repeating: 0, count: self.batchSize / 8)
         self.correlation = Array(repeating: 0, count: self.batchSize / 2)
     }
     
-    
-    
     public mutating func supplyData(_ data: [Float]) {
-        self.rawAudio = data
+        // TODO: Take into account the impact of different lengths of data
+        self.data = data
         self.batchSize = data.count
     }
     
     public mutating func detect() -> Double {
-        self.zeroCrossings = Array(repeating: false, count: self.batchSize)
         self.correlation = Array(repeating: 0, count: self.batchSize / 2)
-        
+            
         self.zeroCross()
         self.autocorrelate()
         
-        let sampleOffset = Array(self.correlation[ignoreFrom...]).min() ?? -1
+        var sampleOffset: Int = 0
+        sampleOffset = Array(self.correlation[ignoreMin...]).min() ?? -1
         
-        // Algorithm
         return Double(self.sampleRate) / Double(sampleOffset)
     }
     
+    
     private mutating func zeroCross() {
-        var pointer = false // true --> +/0
-        for (index, value) in self.rawAudio.enumerated() {
-            if ((pointer == false) ^ (value < 0)) {
-                pointer.toggle()
-            }
-            
-            self.zeroCrossings[index] = pointer
+        self.squareData = self.data.map { $0 < 0 ? 0 : 1 }
+        
+        for (index, sample) in self.squareData.enumerated() {
+            self.zeroCrossedData[index / 8] = (self.zeroCrossedData[index / 8] << 1) | sample
         }
     }
     
