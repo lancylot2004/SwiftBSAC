@@ -12,10 +12,10 @@ public struct SwiftBSAC {
     
     // Configuration
     private(set) var batchSize: Int
-    private(set) var sampleRate: Int
+    private(set) var sampleRate: Double
     private(set) var minFreq: Double
     private(set) var maxFreq: Double
-    private(set) var ignoreMin: Int
+    private(set) var minPeriod: Double
     
     // Programme Arrays
     private(set) var data: [Float]
@@ -24,21 +24,21 @@ public struct SwiftBSAC {
     private(set) var shiftedData: [[UInt8]]
     private(set) var correlation: [Int]
 
-    public init(_ batchSize: Int = 3096, _ sampleRate: Int = 44100, _ maxFreq: Double = 12000) throws {
+    public init(_ batchSize: Int = 3096, _ sampleRate: Double = 44100, _ maxFreq: Double = 12000) throws {
         guard batchSize > 1 else { throw BSACError.invalidBatchSizeIsOne }
         guard batchSize % 2 == 0 else { throw BSACError.invalidBatchSizeMulTwo }
         guard sampleRate > 1 else { throw BSACError.invalidSampleRateIsOne }
         
         self.batchSize = batchSize
         self.sampleRate = sampleRate
-        self.minFreq = Double(self.sampleRate) / (Double(batchSize) / 2)
+        self.minFreq = self.sampleRate / (Double(batchSize) / 2)
             
         guard maxFreq > self.minFreq else { throw BSACError.invalidMaxFreqLowerThanMin }
         
         self.maxFreq = maxFreq
-        self.ignoreMin = Int((Double(self.sampleRate) / self.maxFreq).rounded(.up))
+        self.minPeriod = self.sampleRate / self.maxFreq
             
-        guard self.ignoreMin < self.batchSize else { throw BSACError.invalidMaxFreqIgnoreOverflow }
+        guard self.minPeriod < Double(self.batchSize) else { throw BSACError.invalidMaxFreqIgnoreOverflow }
         
         self.data = []
         self.squareData = []
@@ -61,11 +61,7 @@ public struct SwiftBSAC {
         self.zeroCross()
         self.autocorrelate()
         
-        // TODO: Actually estimate pitch
-        var sampleOffset: Int = 0
-        sampleOffset = Array(self.correlation[ignoreMin...]).min() ?? -1
-        
-        return Double(self.sampleRate) / Double(sampleOffset)
+        return self.estimate()
     }
     
     /// Performs zero-crossing on `data`, then maps resulting data into chunks using `UInt8`.
@@ -90,11 +86,23 @@ public struct SwiftBSAC {
         /// Performs correlation using XOR operations for each offset, then counts
         /// the number of nonzeroBits in each UInt8, then totals them in the `correlation` array.
         for i in 0 ..< (self.batchSize / 2) {
-            self.correlation[i] += zip(self.zeroCrossedData, self.shiftedData[i % 8][(i / 8)...])
-                .map { $0 ^ $1 }
-                .map { $0.nonzeroBitCount }
-                .reduce(0, +)
+            let chunkOffset: Int = i / 8
+            let shiftOffset: Int = i % 8
+            var sum: Int = 0
+            var index: Int = 0
+            while index < (self.shiftedData[shiftOffset].count - chunkOffset - 1) {
+                sum += (self.zeroCrossedData[index] ^ self.shiftedData[shiftOffset][index + chunkOffset]).nonzeroBitCount
+                index += 1
+            }
+            
+            self.correlation[i] = sum
         }
+    }
+    
+    /// Pitch estimation using... magic?
+    // TODO: Not be dumb
+    private mutating func estimate() -> Double {
+        return 0
     }
     
     /// Bitshifts an array of any unsigned integer as if it were one huge integer.
