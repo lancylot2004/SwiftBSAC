@@ -8,13 +8,13 @@
 import Foundation
 import AVFoundation
 
-func calculateTime(block : (() -> Void)) {
+func calculateTime(_ name: String, block: (() -> Void)) {
     let start = DispatchTime.now()
     block()
     let end = DispatchTime.now()
     let nanoTime = end.uptimeNanoseconds - start.uptimeNanoseconds
     let timeInterval = Double(nanoTime) / 1_000_000_000
-    print("Time: \(timeInterval) seconds")
+    print("[\(name)] Time: \(timeInterval) seconds")
 }
 
 func readDev(_ url: URL) -> [Float] {
