@@ -23,6 +23,14 @@ final class SwiftBSACTests: XCTestCase {
         
         bsac.publicAutocorrelate()
         
-        print(bsac.correlation)
+//        print(bsac.correlation)
+    }
+    
+    func testOverall() throws {
+        var bsac = try! SwiftBSAC()
+        let data = readDev(Bundle.module.url(forResource: "440", withExtension: "wav")!)
+        
+        bsac.supplyData(Array(data[0..<3072]))
+        print(bsac.run())
     }
 }
