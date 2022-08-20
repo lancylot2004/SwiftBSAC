@@ -103,8 +103,7 @@ public struct SwiftBSAC {
         }
     }
     
-    /// Pitch estimation using... magic?
-    // TODO: Not be dumb
+    /// Pitch estimation by cleaning up harmonics then calculating peak width.
     private mutating func estimate() {
         // Process the pesky harmonics first.
         // `minCorrelation` is, counterintuitively, the maximum value of correlation,
@@ -160,7 +159,7 @@ public struct SwiftBSAC {
         self.pitch = self.sampleRate / Double(lagSamples)
     }
     
-    /// Bitshifts an array of any unsigned integer as if it were one huge integer.
+    /// Bitshifts an array of any unsigned integer to the left as if it were one huge integer.
     private func bitshiftArray<T: UnsignedInteger>(_ array: [T], _ distance: Int) -> [T] {
         
         /// `ignoreDistance` is the number of elements to cut off completely, whereas
