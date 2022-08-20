@@ -5,7 +5,7 @@
 //  Created by lancylot2004 on 10/08/2022.
 //
 
-import Foundation
+import SwiftUI
 import AVFoundation
 
 public struct SwiftBSAC {
@@ -23,8 +23,10 @@ public struct SwiftBSAC {
     private(set) var zeroCrossedData: [UInt8]
     private(set) var shiftedData: [[UInt8]]
     private(set) var correlation: [Int]
+    
+    private(set) var pitch: Double
 
-    public init(_ batchSize: Int = 3096, _ sampleRate: Double = 44100, _ maxFreq: Double = 12000) throws {
+    public init(_ batchSize: Int = 3096, _ sampleRate: Double = 44100, _ maxFreq: Double = 10000) throws {
         guard batchSize > 1 else { throw BSACError.invalidBatchSizeIsOne }
         guard batchSize % 2 == 0 else { throw BSACError.invalidBatchSizeMulTwo }
         guard sampleRate > 1 else { throw BSACError.invalidSampleRateIsOne }
@@ -45,6 +47,8 @@ public struct SwiftBSAC {
         self.zeroCrossedData = Array(repeating: 0, count: self.batchSize / 8)
         self.shiftedData = []
         self.correlation = Array(repeating: 0, count: self.batchSize / 2)
+        
+        self.pitch = 0
     }
     
     /// Provide data to process.
@@ -54,14 +58,14 @@ public struct SwiftBSAC {
         self.batchSize = data.count
     }
     
-    /// Performs one full sequence of bitstream autocorrelation, returns detected pitch in `Hertz: Double`
-    public mutating func run() -> Double {
+    /// Performs one full sequence of bitstream autocorrelation, stores detected pitch to `self.pitch`
+    public mutating func run() {
         self.correlation = Array(repeating: 0, count: self.batchSize / 2)
             
         self.zeroCross()
         self.autocorrelate()
         
-        return self.estimate()
+        self.estimate()
     }
     
     /// Performs zero-crossing on `data`, then maps resulting data into chunks using `UInt8`.
@@ -101,8 +105,59 @@ public struct SwiftBSAC {
     
     /// Pitch estimation using... magic?
     // TODO: Not be dumb
-    private mutating func estimate() -> Double {
-        return 0
+    private mutating func estimate() {
+        // Process the pesky harmonics first.
+        // `minCorrelation` is, counterintuitively, the maximum value of correlation,
+        // since the XOR operator is used to calculate correlation.
+        let minCorrelation: Int = self.correlation.max() ?? 0
+        let maxCorrelation: Int = self.correlation[Int(self.minPeriod)...].min() ?? 0
+        var maxCorrelationIndex: Int = self.correlation[Int(self.minPeriod)...].firstIndex(of: maxCorrelation) ?? 0
+        
+        let harmonicThreshold: Double = 0.15 * Double(minCorrelation)
+        let maxDivision: Int = maxCorrelationIndex / Int(self.minPeriod)
+        
+        for division in (1 ... maxDivision).reversed() {
+            var strongHarmonic: Bool = true
+            
+            for i in 1 ..< division {
+                if self.correlation[(i * maxCorrelationIndex) / division] > Int(harmonicThreshold) {
+                    strongHarmonic = false
+                    break
+                }
+            }
+            
+            if strongHarmonic {
+                maxCorrelationIndex /= division
+                break
+            }
+        }
+        
+        // Estimate the pitch
+        var prevSample: Float = 0
+        var startEdge: Int = 0
+        
+        for (index, sample) in self.data.enumerated() {
+            if sample > 0 {
+                prevSample = self.data[index == 0 ? 0 : index - 1]
+                startEdge = index
+                break
+            }
+        }
+        
+        var deltaY: Float = self.data[startEdge] - prevSample
+        let deltaXOne: Float = -prevSample / deltaY
+        
+        var nextEdge: Int = maxCorrelationIndex - 1
+        while self.data[nextEdge] < 0 {
+            prevSample = self.data[nextEdge]
+            nextEdge += 1
+        }
+        
+        deltaY = self.data[nextEdge] - prevSample
+        let deltaXTwo = -prevSample / deltaY
+        
+        let lagSamples: Float = Float(nextEdge - startEdge) + (deltaXTwo - deltaXOne)
+        self.pitch = self.sampleRate / Double(lagSamples)
     }
     
     /// Bitshifts an array of any unsigned integer as if it were one huge integer.
