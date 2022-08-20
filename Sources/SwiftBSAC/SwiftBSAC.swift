@@ -197,5 +197,9 @@ extension SwiftBSAC {
     public mutating func publicAutocorrelate() {
         self.autocorrelate()
     }
+    
+    public mutating func publicEstimate() {
+        self.estimate()
+    }
 }
 #endif
