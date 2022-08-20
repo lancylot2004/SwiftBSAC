@@ -28,9 +28,18 @@ final class SwiftBSACTests: XCTestCase {
     
     func testOverall() throws {
         var bsac = try! SwiftBSAC()
-        let data = readDev(Bundle.module.url(forResource: "440", withExtension: "wav")!)
+        let data = readDev(Bundle.module.url(forResource: "440vio", withExtension: "wav")!)
         
-        bsac.supplyData(Array(data[0..<3072]))
-        print(bsac.run())
+        var currIndex = 100
+        while currIndex + 3072 <= data.count {
+            while data[currIndex] > 0 { currIndex += 1 }
+            while data[currIndex] < 0 { currIndex += 1 }
+            currIndex -= 1
+            
+            bsac.supplyData(Array(data[currIndex..<currIndex + 3072]))
+            bsac.run()
+            print(bsac.pitch)
+            currIndex += 3072
+        }
     }
 }
