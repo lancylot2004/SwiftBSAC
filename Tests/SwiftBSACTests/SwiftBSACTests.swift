@@ -1,6 +1,14 @@
 import XCTest
 @testable import SwiftBSAC
 
+func readDev(_ url: URL) -> [Float] {
+    let file = try! AVAudioFile(forReading: url)
+    let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: file.fileFormat.sampleRate, channels: file.fileFormat.channelCount, interleaved: false)!
+    let buf = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: UInt32(file.length))
+    try! file.read(into: buf!) // You probably want better error handling
+    return Array(UnsafeBufferPointer(start: buf!.floatChannelData![0], count:Int(buf!.frameLength)))
+}
+
 final class SwiftBSACTests: XCTestCase {
     func testZeroCross() throws {
         var bsac = try! SwiftBSAC()
