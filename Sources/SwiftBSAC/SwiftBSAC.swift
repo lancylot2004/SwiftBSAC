@@ -156,7 +156,10 @@ public struct SwiftBSAC {
         let deltaXTwo = -prevSample / deltaY
         
         let lagSamples: Float = Float(nextEdge - startEdge) + (deltaXTwo - deltaXOne)
-        self.pitch = self.sampleRate / Double(lagSamples)
+        let tempPitch: Double = self.sampleRate / Double(lagSamples)
+        
+        guard tempPitch > self.minFreq && tempPitch < self.maxFreq else { return }
+        self.pitch = tempPitch
     }
     
     /// Bitshifts an array of any unsigned integer to the left as if it were one huge integer.
