@@ -1,4 +1,5 @@
 import XCTest
+import AVFoundation
 @testable import SwiftBSAC
 
 func readDev(_ url: URL) -> [Float] {
