@@ -15,7 +15,7 @@ public class SwiftBSACDriver: ObservableObject {
     
     private(set) var batchSize: Int
     
-    public init(_ batchSize: Int = 3096, _ sampleRate: Double = 96000, _ maxFreq: Double = 10000) throws {
+    public init(_ batchSize: Int = 6192, _ sampleRate: Double = 96000, _ maxFreq: Double = 10000) throws {
         
         guard batchSize > 1 else { throw BSACError.invalidBatchSizeIsOne }
         guard batchSize % 2 == 0 else { throw BSACError.invalidBatchSizeMulTwo }
