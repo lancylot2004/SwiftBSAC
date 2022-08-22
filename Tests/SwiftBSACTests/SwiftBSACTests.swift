@@ -51,4 +51,11 @@ final class SwiftBSACTests: XCTestCase {
             currIndex += 3072
         }
     }
+    
+    func testDriver() async throws {
+        let driver = try! SwiftBSACDriver()
+        driver.start()
+        
+        try! await Task.sleep(nanoseconds: 30000000000000)
+    }
 }
