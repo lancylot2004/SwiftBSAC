@@ -18,7 +18,8 @@ public struct SwiftBSAC {
     private(set) var minPeriod: Double
     
     // Programme Arrays
-    private(set) var data: [Float]
+    /// Writing directly to this variable is not recommended!
+    public var data: [Float]
     private(set) var squareData: [UInt8]
     private(set) var zeroCrossedData: [UInt8]
     private(set) var shiftedData: [[UInt8]]
@@ -27,9 +28,6 @@ public struct SwiftBSAC {
     private(set) var pitch: Double
 
     public init(_ batchSize: Int = 3096, _ sampleRate: Double = 44100, _ maxFreq: Double = 10000) throws {
-        guard batchSize > 1 else { throw BSACError.invalidBatchSizeIsOne }
-        guard batchSize % 2 == 0 else { throw BSACError.invalidBatchSizeMulTwo }
-        guard sampleRate > 1 else { throw BSACError.invalidSampleRateIsOne }
         
         self.batchSize = batchSize
         self.sampleRate = sampleRate
@@ -42,7 +40,7 @@ public struct SwiftBSAC {
             
         guard self.minPeriod < Double(self.batchSize) else { throw BSACError.invalidMaxFreqIgnoreOverflow }
         
-        self.data = []
+        self.data = Array(repeating: 0, count: self.batchSize)
         self.squareData = []
         self.zeroCrossedData = Array(repeating: 0, count: self.batchSize / 8)
         self.shiftedData = []

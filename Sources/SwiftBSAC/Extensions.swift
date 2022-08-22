@@ -30,6 +30,7 @@ enum BSACError: Error {
     case invalidBatchSizeMulTwo, invalidBatchSizeIsOne
     case invalidSampleRateIsOne
     case invalidMaxFreqLowerThanMin, invalidMaxFreqIgnoreOverflow
+    case audioEngineInitFailed
 }
 
 extension BSACError: CustomStringConvertible {
@@ -45,6 +46,8 @@ extension BSACError: CustomStringConvertible {
             return "Maximum frequency must be greater than minimum frequency!"
         case .invalidMaxFreqIgnoreOverflow:
             return "Maximum frequency generates a range to ignore than is out of bounds for the batch size specified!"
+        case .audioEngineInitFailed:
+            return "Failed to initialise AVAudioEngine!"
         }
     }
 }
