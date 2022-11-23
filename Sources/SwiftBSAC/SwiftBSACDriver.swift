@@ -7,13 +7,14 @@
 
 import AVFoundation
 
-@available(macOS 10.15, *)
+@available(iOS 13.0, *)
 public class SwiftBSACDriver: ObservableObject {
     
     var audioEngine: AVAudioEngine
     var bsac: SwiftBSAC
     
     private(set) var batchSize: Int
+    @Published var pitch: Double = 0
     
     public init(_ batchSize: Int = 6192, _ sampleRate: Double = 96000, _ maxFreq: Double = 10000) throws {
         
@@ -32,24 +33,7 @@ public class SwiftBSACDriver: ObservableObject {
             bufferSize: AVAudioFrameCount(batchSize),
             format: .none
         ) { buffer, time in
-            let bufferCount: Int = Int(buffer.frameLength)
-            var startIndex: Int = 0 {
-                didSet {
-                    if startIndex >= bufferCount  { return }
-                }
-            }
-            
-            // Find first positive edge of a waveform, then go back one
-            while (buffer.floatChannelData?.pointee[startIndex])! >= 0 { startIndex += 1 }
-            while (buffer.floatChannelData?.pointee[startIndex])! < 0 { startIndex += 1 }
-            startIndex -= 1
-            
-            for i in 0 ..< min(bufferCount, batchSize) {
-                self.bsac.data[i] = (buffer.floatChannelData?.pointee[i + startIndex])!
-            }
-
-            self.bsac.run()
-            print(self.bsac.pitch)
+            self.processBuffer(buffer: buffer, time: time)
         }
     }
     
@@ -66,5 +50,26 @@ public class SwiftBSACDriver: ObservableObject {
     
     public func stop() {
         self.audioEngine.stop()
+    }
+    
+    private func processBuffer(buffer: AVAudioPCMBuffer, time: AVAudioTime) {
+        let bufferCount: Int = Int(buffer.frameLength)
+        var startIndex: Int = 0 {
+            didSet {
+                if startIndex >= bufferCount  { return }
+            }
+        }
+        
+        // Find first positive edge of a waveform, then go back one
+        while (buffer.floatChannelData?.pointee[startIndex])! >= 0 { startIndex += 1 }
+        while (buffer.floatChannelData?.pointee[startIndex])! < 0 { startIndex += 1 }
+        startIndex -= 1
+        
+        for i in 0 ..< min(bufferCount, batchSize) {
+            self.bsac.data[i] = (buffer.floatChannelData?.pointee[i + startIndex])!
+        }
+
+        self.bsac.run()
+        self.pitch = self.bsac.pitch
     }
 }
