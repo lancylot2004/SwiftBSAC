@@ -14,7 +14,7 @@ public class SwiftBSACDriver: ObservableObject {
     var bsac: SwiftBSAC
     
     private(set) var batchSize: Int
-    @Published var pitch: Double = 0
+    @Published public var pitch: Double = 0
     
     public init(_ batchSize: Int = 6192, _ sampleRate: Double = 96000, _ maxFreq: Double = 10000) throws {
         
