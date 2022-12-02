@@ -26,7 +26,7 @@ public final class SwiftBSAC {
     private(set) var shiftedData: [[UInt8]]
     private(set) var correlation: [Int]
     
-    @Published var pitch: Double
+    @Published public var pitch: Double
 
     public init(_ batchSize: Int = 3096, _ sampleRate: Double = 44100, _ maxFreq: Double = 10000) throws {
         
