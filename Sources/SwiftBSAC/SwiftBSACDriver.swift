@@ -71,5 +71,9 @@ public class SwiftBSACDriver: ObservableObject {
 
         self.bsac.run()
         self.pitch = self.bsac.pitch
+        
+        #if DEBUG
+        print(self.pitch)
+        #endif
     }
 }

@@ -8,7 +8,8 @@
 import SwiftUI
 import AVFoundation
 
-public struct SwiftBSAC {
+@available(iOS 13.0, *)
+public final class SwiftBSAC {
     
     // Configuration
     private(set) var batchSize: Int
@@ -25,7 +26,7 @@ public struct SwiftBSAC {
     private(set) var shiftedData: [[UInt8]]
     private(set) var correlation: [Int]
     
-    private(set) var pitch: Double
+    @Published var pitch: Double
 
     public init(_ batchSize: Int = 3096, _ sampleRate: Double = 44100, _ maxFreq: Double = 10000) throws {
         
@@ -50,14 +51,14 @@ public struct SwiftBSAC {
     }
     
     /// Provide data to process.
-    public mutating func supplyData(_ data: [Float]) {
+    public func supplyData(_ data: [Float]) {
         // TODO: Take into account the impact of different lengths of data
         self.data = data
         self.batchSize = data.count
     }
     
     /// Performs one full sequence of bitstream autocorrelation, stores detected pitch to `self.pitch`
-    public mutating func run() {
+    public func run() {
         self.correlation = Array(repeating: 0, count: self.batchSize / 2)
             
         self.zeroCross()
@@ -67,7 +68,7 @@ public struct SwiftBSAC {
     }
     
     /// Performs zero-crossing on `data`, then maps resulting data into chunks using `UInt8`.
-    private mutating func zeroCross() {
+    private func zeroCross() {
         self.squareData = self.data.map { $0 < 0 ? 0 : 1 }
         
         for (index, sample) in self.squareData.enumerated() {
@@ -76,7 +77,7 @@ public struct SwiftBSAC {
     }
     
     /// Performs autocorrelation on `zeroCrossedData`.
-    private mutating func autocorrelate() {
+    private func autocorrelate() {
         /// **Preshifts** the `zeroCrossedData` seven times, so that when XOR operations
         /// are performed with an offset, any offset greater than 8 can be achieved
         /// by cutting off `offset / 8` elements from the `offset % 8` shifted data.
@@ -102,7 +103,7 @@ public struct SwiftBSAC {
     }
     
     /// Pitch estimation by cleaning up harmonics then calculating peak width.
-    private mutating func estimate() {
+    private func estimate() {
         // Process the pesky harmonics first.
         // `minCorrelation` is, counterintuitively, the maximum value of correlation,
         // since the XOR operator is used to calculate correlation.
@@ -189,16 +190,17 @@ public struct SwiftBSAC {
 // Used for calling private functions in unit tests.
 
 #if DEBUG
+@available(iOS 13.0, *)
 extension SwiftBSAC {
-    public mutating func publicZeroCross() {
+    public func publicZeroCross() {
         self.zeroCross()
     }
     
-    public mutating func publicAutocorrelate() {
+    public func publicAutocorrelate() {
         self.autocorrelate()
     }
     
-    public mutating func publicEstimate() {
+    public func publicEstimate() {
         self.estimate()
     }
 }

@@ -10,6 +10,7 @@ func readDev(_ url: URL) -> [Float] {
     return Array(UnsafeBufferPointer(start: buf!.floatChannelData![0], count:Int(buf!.frameLength)))
 }
 
+@available(iOS 13.0.0, *)
 final class SwiftBSACTests: XCTestCase {
     func testZeroCross() throws {
         var bsac = try! SwiftBSAC()
