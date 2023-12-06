@@ -4,6 +4,4 @@ A simple version of `bitstream autocorrelation`, found here on [Cycfi](https://w
 
 This project is not intended to be used in production - it's created by a novice high school student and functions many times less efficiently than other, more established implementations.
 
-This project is still under development.
-
 `MIT License`
